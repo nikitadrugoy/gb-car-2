@@ -420,6 +420,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _placeForUi: {fileID: 1903552}
   _adsTools: {fileID: 1980575211}
+  _shopProducts:
+  - {fileID: 11400000, guid: 34a9bb51cfd894c4eb29da9d3924f75e, type: 2}
 --- !u!114 &1980575211
 MonoBehaviour:
   m_ObjectHideFlags: 0
