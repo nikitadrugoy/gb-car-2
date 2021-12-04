@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Tools.Tools;
+using UnityEngine;
 using UnityEngine.Purchasing;
 
 namespace Model.Shop
@@ -10,23 +12,20 @@ namespace Model.Shop
         private IExtensionProvider _extensionProvider;
         private bool _isInitialized;
 
-        private readonly SubscriptionAction _onSuccessPurchase;
-        private readonly SubscriptionAction _onFailedPurchase;
+        public event Action OnSuccessPurchase;
+        public event Action OnFailedPurchase;
 
         public ShopTools(List<ShopProduct> products)
         {
-            _onSuccessPurchase = new SubscriptionAction();
-            _onFailedPurchase = new SubscriptionAction();
-            ConfigurationBuilder builder = ConfigurationBuilder.Instance(StandardPurchasingModule.Instance());
+            var builder = ConfigurationBuilder.Instance(StandardPurchasingModule.Instance());
 
             foreach (ShopProduct product in products)
             {
-                builder.AddProduct(product.Id, product.CurrentProductType);
+                builder.AddProduct(product.Id, product.ProductType);
             }
+            
+            UnityPurchasing.Initialize(this, builder);
         }
-
-        public IReadOnlySubscriptionAction OnSuccessPurchase => _onSuccessPurchase;
-        public IReadOnlySubscriptionAction OnFailedPurchase => _onFailedPurchase;
 
         public void Buy(string id)
         {
@@ -37,11 +36,13 @@ namespace Model.Shop
 
         public void OnInitializeFailed(InitializationFailureReason error)
         {
+            Debug.Log(error);
             _isInitialized = false;
         }
 
         public PurchaseProcessingResult ProcessPurchase(PurchaseEventArgs purchaseEvent)
         {
+            Debug.Log("ProcessPurchase");
             bool validPurchase = false;
 //#if UNITY_ANDROID || UNITY_IOS
 //           CrossPlatformValidator validator = new CrossPlatformValidator(GooglePlayTangle.Data(),
@@ -59,17 +60,18 @@ namespace Model.Shop
 //               validPurchase = false;
 //           }
 //#endif
-            _onSuccessPurchase.Invoke();
+            OnSuccessPurchase?.Invoke();
             return PurchaseProcessingResult.Complete;
         }
 
         public void OnPurchaseFailed(Product product, PurchaseFailureReason failureReason)
         {
-            _onFailedPurchase.Invoke();
+            OnFailedPurchase?.Invoke();
         }
 
         public void OnInitialized(IStoreController controller, IExtensionProvider extensions)
         {
+            Debug.Log("OnInitialized");
             _controller = controller;
             _extensionProvider = extensions;
             _isInitialized = true;
@@ -93,7 +95,7 @@ namespace Model.Shop
             }
 
 #if UNITY_IOS
-           _extensionProvider.GetExtension<IAppleExtensions>().RestoreTransactions(OnRestoreTransactionFinished);
+            _extensionProvider.GetExtension<IAppleExtensions>().RestoreTransactions(OnRestoreTransactionFinished);
 #else
             _extensionProvider.GetExtension<IGooglePlayStoreExtensions>().RestoreTransactions(OnRestoreFinished);
 #endif
